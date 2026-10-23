@@ -19,8 +19,8 @@ def get_openai_client(api_key: Optional[str] = None, base_url: Optional[str] = N
     Initializes and returns an official OpenAI client pointed at Nebius Token Factory.
     Does not log or expose raw credentials.
     """
-    key = (api_key or NEBIUS_API_KEY).strip()
-    url = (base_url or NEBIUS_BASE_URL).strip()
+    key = (api_key if api_key is not None else NEBIUS_API_KEY).strip()
+    url = (base_url if base_url is not None else NEBIUS_BASE_URL).strip()
 
     if not key or key in ["your_nebius_api_key_here", "your_api_key", "placeholder"]:
         raise NebiusMissingCredentialsError(
@@ -46,8 +46,8 @@ def verify_nebius_connection(
     Does NOT fabricate responses. Returns real verification telemetry.
     """
     target_model = model or NEBIUS_MODEL
-    key = (api_key or NEBIUS_API_KEY).strip()
-    url = (base_url or NEBIUS_BASE_URL).strip()
+    key = (api_key if api_key is not None else NEBIUS_API_KEY).strip()
+    url = (base_url if base_url is not None else NEBIUS_BASE_URL).strip()
 
     if not key or key in ["your_nebius_api_key_here", "your_api_key", "placeholder"]:
         return {

@@ -356,15 +356,15 @@ if current_tab == "Dashboard":
                 st.markdown(f"""
                 <div class="civic-card">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-                        <span style="font-weight: 700; color: #0d9488;">{c.case_number}{tag}</span>
+                        <span style="font-weight: 700; color: #2dd4bf;">{c.case_number}{tag}</span>
                         <div>
                             <span class="status-badge {status_class}">{c.status}</span>
                             <span class="urgency-badge {urg_class}">{c.urgency} Urgency</span>
                         </div>
                     </div>
-                    <div style="font-size: 1.15rem; font-weight: 700; color: #0f172a; margin-bottom: 0.3rem;">{c.title}</div>
-                    <div style="font-size: 0.9rem; color: #64748b; margin-bottom: 0.5rem;">📍 {c.location} &nbsp;|&nbsp; 🏷️ {c.category} &nbsp;|&nbsp; 📅 {c.created_at}</div>
-                    <div style="font-size: 0.95rem; color: #334155;">{c.ai_analysis.summary}</div>
+                    <div style="font-size: 1.15rem; font-weight: 700; color: #f8fafc; margin-bottom: 0.3rem;">{c.title}</div>
+                    <div style="font-size: 0.9rem; color: #94a3b8; margin-bottom: 0.5rem;">📍 {c.location} &nbsp;|&nbsp; 🏷️ {c.category} &nbsp;|&nbsp; 📅 {c.created_at}</div>
+                    <div style="font-size: 0.95rem; color: #cbd5e1; line-height: 1.5;">{c.ai_analysis.summary}</div>
                 </div>
                 """, unsafe_allow_html=True)
                 btn_col1, _ = st.columns([1, 4])
@@ -560,15 +560,15 @@ elif current_tab == "Report an Issue":
         urg_cls = f"urgency-{ai.urgency.lower()}"
         st.markdown(f"""
         <div class="civic-card">
-            <div style="display: flex; justify-content: space-between; align-items: center;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem;">
                 <span class="urgency-badge {urg_cls}">{ai.urgency} Urgency Recommendation</span>
-                <span style="font-size: 0.85rem; color: #64748b;">Model: {res_case.model_used}</span>
+                <span style="font-size: 0.85rem; color: #94a3b8;">Model: {res_case.model_used}</span>
             </div>
-            <h3 style="margin-top: 0.8rem;">{ai.summary}</h3>
-            <p><b>Target Jurisdiction:</b> {ai.responsible_authority_type}</p>
-            <p style="color: #475569;"><b>Urgency Reasoning:</b> {ai.urgency_reasoning}</p>
+            <h3 style="margin-top: 0.4rem; color: #ffffff !important;">{ai.summary}</h3>
+            <p style="color: #cbd5e1 !important; margin-bottom: 0.4rem;"><b style="color: #ffffff !important;">Target Jurisdiction:</b> {ai.responsible_authority_type}</p>
+            <p style="color: #cbd5e1 !important; margin-bottom: 0.8rem;"><b style="color: #ffffff !important;">Urgency Reasoning:</b> {ai.urgency_reasoning}</p>
             <div class="notice-box">
-                <b>Confidence & Advisory Notice:</b> {ai.confidence_assessment}
+                <b style="color: #ffffff !important;">Confidence & Advisory Notice:</b> {ai.confidence_assessment}
             </div>
         </div>
         """, unsafe_allow_html=True)
@@ -663,17 +663,17 @@ elif current_tab == "Case Management":
             st.info("No cases match your filters.")
         for cs in cases:
             is_active = (active_case and cs.id == active_case.id)
-            border_style = "border: 2px solid #0d9488;" if is_active else "border: 1px solid #e2e8f0;"
+            border_style = "border: 2px solid #0d9488;" if is_active else "border: 1px solid #334155;"
             tag = " [Demo]" if cs.is_demo else ""
 
             st.markdown(f"""
-            <div style="background: #ffffff; {border_style} border-radius: 10px; padding: 0.9rem; margin-bottom: 0.6rem;">
+            <div style="background: #1e293b; {border_style} border-radius: 10px; padding: 0.9rem; margin-bottom: 0.6rem;">
                 <div style="display: flex; justify-content: space-between;">
-                    <b style="color: #0d9488;">{cs.case_number}{tag}</b>
-                    <span style="font-size: 0.75rem; font-weight: 700;">{cs.urgency} | {cs.status}</span>
+                    <b style="color: #2dd4bf;">{cs.case_number}{tag}</b>
+                    <span style="font-size: 0.75rem; font-weight: 700; color: #94a3b8;">{cs.urgency} | {cs.status}</span>
                 </div>
-                <div style="font-weight: 600; color: #0f172a; margin: 0.2rem 0;">{cs.title[:45]}...</div>
-                <div style="font-size: 0.8rem; color: #64748b;">📍 {cs.location[:30]}</div>
+                <div style="font-weight: 600; color: #f8fafc; margin: 0.2rem 0;">{cs.title[:45]}...</div>
+                <div style="font-size: 0.8rem; color: #94a3b8;">📍 {cs.location[:30]}</div>
             </div>
             """, unsafe_allow_html=True)
             if st.button("Select Case", key=f"sel_btn_{cs.id}", use_container_width=True):
@@ -702,10 +702,18 @@ elif current_tab == "Case Management":
             # Case details
             st.markdown(f"""
             <div class="civic-card">
-                <h4>{active_case.title}</h4>
-                <p><b>Category:</b> {active_case.category} &nbsp;|&nbsp; <b>Location:</b> {active_case.location}</p>
-                <p><b>Observed:</b> {active_case.observed_date or 'N/A'} &nbsp;|&nbsp; <b>Logged:</b> {active_case.created_at}</p>
-                <p><b>Description:</b><br>{active_case.description}</p>
+                <h3 style="color: #ffffff !important; margin-bottom: 0.5rem;">{active_case.title}</h3>
+                <p style="color: #cbd5e1 !important; margin-bottom: 0.3rem;">
+                    <b style="color: #ffffff !important;">Category:</b> {active_case.category} &nbsp;|&nbsp; 
+                    <b style="color: #ffffff !important;">Location:</b> {active_case.location}
+                </p>
+                <p style="color: #94a3b8 !important; margin-bottom: 0.8rem;">
+                    <b style="color: #cbd5e1 !important;">Observed:</b> {active_case.observed_date or 'N/A'} &nbsp;|&nbsp; 
+                    <b style="color: #cbd5e1 !important;">Logged:</b> {active_case.created_at}
+                </p>
+                <div style="font-size: 0.95rem; color: #f1f5f9 !important; line-height: 1.6; border-top: 1px solid #334155; padding-top: 0.8rem;">
+                    <b style="color: #ffffff !important;">Description:</b><br>{active_case.description}
+                </div>
             </div>
             """, unsafe_allow_html=True)
 
