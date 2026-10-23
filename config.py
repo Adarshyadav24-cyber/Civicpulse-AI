@@ -1,6 +1,7 @@
 import os
 from pathlib import Path
 from dotenv import load_dotenv
+from typing import Optional
 
 # Base directory
 BASE_DIR = Path(__file__).resolve().parent
@@ -38,16 +39,39 @@ URGENCY_LEVELS = ["Low", "Medium", "High", "Critical"]
 # Supported Case Statuses
 CASE_STATUSES = ["Open", "In Progress", "Resolved"]
 
-# Helper to check if Nebius is ready
-def is_nebius_configured() -> bool:
+def is_nebius_configured(key: Optional[str] = None) -> bool:
     """Returns True if a non-placeholder Nebius API key is set."""
+    check_key = key if key is not None else os.getenv("NEBIUS_API_KEY", NEBIUS_API_KEY)
     placeholder_keys = [
         "",
         "your_nebius_api_key_here",
         "your_api_key",
         "placeholder",
     ]
-    return bool(NEBIUS_API_KEY and NEBIUS_API_KEY not in placeholder_keys)
+    return bool(check_key and check_key.strip() not in placeholder_keys)
+
+
+def update_env_file(key: str, value: str) -> None:
+    """Updates or adds an environment variable in the local .env file."""
+    env_file = BASE_DIR / ".env"
+    lines = []
+    found = False
+    prefix = f"{key}="
+
+    if env_file.exists():
+        with open(env_file, "r") as f:
+            lines = f.readlines()
+        for i, line in enumerate(lines):
+            if line.strip().startswith(prefix):
+                lines[i] = f"{key}={value}\n"
+                found = True
+                break
+    if not found:
+        lines.append(f"{key}={value}\n")
+
+    with open(env_file, "w") as f:
+        f.writelines(lines)
+    os.environ[key] = value
 
 # Pre-packaged Demo Scenarios for 1-click test in UI
 DEMO_SCENARIOS = {

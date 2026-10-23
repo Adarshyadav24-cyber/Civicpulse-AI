@@ -119,3 +119,22 @@ def test_malformed_json_handling(mock_get_client):
     with pytest.raises(NebiusClientError) as exc_info:
         analyze_civic_case(case_input, api_key="test_key")
     assert "Invalid JSON format" in str(exc_info.value) or "invalid JSON" in str(exc_info.value)
+
+
+def test_is_nebius_configured_helper():
+    from config import is_nebius_configured
+    assert is_nebius_configured("real_valid_key_123") is True
+    assert is_nebius_configured("") is False
+    assert is_nebius_configured("your_nebius_api_key_here") is False
+    assert is_nebius_configured("placeholder") is False
+
+
+def test_update_env_file(tmp_path, monkeypatch):
+    import config
+    fake_env = tmp_path / ".env"
+    monkeypatch.setattr(config, "BASE_DIR", tmp_path)
+    config.update_env_file("TEST_NEBIUS_KEY", "secret_123")
+
+    content = fake_env.read_text()
+    assert "TEST_NEBIUS_KEY=secret_123" in content
+

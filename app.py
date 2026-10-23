@@ -16,6 +16,7 @@ from config import (
     CASE_STATUSES,
     DEMO_SCENARIOS,
     is_nebius_configured,
+    update_env_file,
 )
 from models.schemas import CaseInput, AIAnalysisResult
 from database.repository import (
@@ -136,9 +137,22 @@ Yours faithfully,
 
 seed_demo_cases()
 
+# Navigation items mapping
+NAV_ITEMS = [
+    ("📊", "Dashboard"),
+    ("📝", "Report an Issue"),
+    ("📁", "Case Management"),
+    ("📈", "Community Insights"),
+    ("⚙️", "Settings & API Status"),
+]
+NAV_OPTIONS = [f"{icon} {name}" for icon, name in NAV_ITEMS]
+TAB_NAMES = [name for _, name in NAV_ITEMS]
+
 # Session State Initialization
 if "active_tab" not in st.session_state:
     st.session_state.active_tab = "Dashboard"
+if "nebius_api_key" not in st.session_state:
+    st.session_state.nebius_api_key = NEBIUS_API_KEY
 if "selected_case_id" not in st.session_state:
     st.session_state.selected_case_id = None
 if "report_title" not in st.session_state:
@@ -156,37 +170,62 @@ if "last_analysis_result" not in st.session_state:
 if "api_test_result" not in st.session_state:
     st.session_state.api_test_result = None
 
+# Helper functions for API Key resolution
+def get_effective_key() -> str:
+    """Retrieves active Nebius API key from session or environment."""
+    sess_k = st.session_state.get("nebius_api_key", "").strip()
+    if sess_k:
+        return sess_k
+    return os.getenv("NEBIUS_API_KEY", NEBIUS_API_KEY).strip()
+
+def is_key_ready() -> bool:
+    """Checks if a valid, non-placeholder API key is available."""
+    return is_nebius_configured(get_effective_key())
+
 # Sidebar Navigation & Diagnostics
 with st.sidebar:
     st.markdown("### 🏛️ CivicPulse AI")
     st.caption("Nebius × NVIDIA Global AI Hackathon 2026")
 
-    # API Status Pill
-    has_key = is_nebius_configured()
-    if has_key:
-        st.success(f"🟢 **Nebius Configured**\n\nModel: `{NEBIUS_MODEL}`")
+    # API Status Pill & Fast Key Addition
+    ready = is_key_ready()
+    eff_key = get_effective_key()
+    if ready:
+        masked = f"{eff_key[:4]}...{eff_key[-4:]}" if len(eff_key) > 8 else "Configured"
+        st.success(f"🟢 **Nebius Configured**\n\nKey: `{masked}`\n\nModel: `{NEBIUS_MODEL}`")
     else:
-        st.warning("🟡 **API Key Not Set**\n\nConfigure in Settings or `.env`")
+        st.warning("🟡 **API Key Not Set**")
+        with st.expander("🔑 Add Nebius API Key", expanded=True):
+            sb_key = st.text_input(
+                "Paste Key",
+                type="password",
+                placeholder="nbf-...",
+                key="sb_key_input",
+                help="Get your key at tokenfactory.nebius.com",
+            )
+            sb_save = st.checkbox("Save permanently to .env", value=True, key="sb_save_env")
+            if st.button("Apply API Key", key="sb_apply_btn", use_container_width=True):
+                if sb_key.strip():
+                    st.session_state.nebius_api_key = sb_key.strip()
+                    if sb_save:
+                        update_env_file("NEBIUS_API_KEY", sb_key.strip())
+                    st.success("API Key applied!")
+                    st.rerun()
 
     st.markdown("---")
+
+    # Safe index resolution (never throws ValueError)
+    current_active = st.session_state.get("active_tab", "Dashboard")
+    for _, name in NAV_ITEMS:
+        if name in current_active:
+            current_active = name
+            break
+    tab_idx = TAB_NAMES.index(current_active) if current_active in TAB_NAMES else 0
+
     nav_selection = st.radio(
         "Navigation",
-        [
-            "📊 Dashboard",
-            "📝 Report an Issue",
-            "📁 Case Management",
-            "📈 Community Insights",
-            "⚙️ Settings & API Status",
-        ],
-        index=[
-            "📊 Dashboard",
-            "📝 Report an Issue",
-            "📁 Case Management",
-            "📈 Community Insights",
-            "⚙️ Settings & API Status",
-        ].index(f"📊 {st.session_state.active_tab}" if not any(x in st.session_state.active_tab for x in ["📊", "📝", "📁", "📈", "⚙️"]) else st.session_state.active_tab)
-        if any(st.session_state.active_tab in x for x in ["Dashboard", "Report an Issue", "Case Management", "Community Insights", "Settings & API Status"])
-        else 0,
+        NAV_OPTIONS,
+        index=tab_idx,
     )
     # Strip icon for routing
     current_tab = nav_selection.split(" ", 1)[1]
@@ -456,16 +495,33 @@ elif current_tab == "Report an Issue":
             )
 
             # Check API Key status
-            if not is_nebius_configured():
-                st.error(
-                    "❌ **Nebius Token Factory API Key Not Configured**\n\n"
-                    "CivicPulse AI requires genuine inference with NVIDIA Nemotron on Nebius Token Factory. "
-                    "Please configure your `NEBIUS_API_KEY` in the `.env` file or test it in the **Settings & API Status** tab."
+            if not is_key_ready():
+                st.error("❌ **Nebius Token Factory API Key Not Configured**")
+                st.markdown(
+                    """
+                    CivicPulse AI connects to **Nebius Token Factory** to run genuine inference with **NVIDIA Nemotron**.
+                    Please enter your Nebius API Key below to complete the report analysis:
+                    """
                 )
+                col_k1, col_k2 = st.columns([2, 1])
+                with col_k1:
+                    rep_key = st.text_input("Enter Nebius API Key", type="password", key="rep_key_input", placeholder="nbf-...")
+                with col_k2:
+                    st.write("")
+                    rep_save = st.checkbox("Save permanently to .env", value=True, key="rep_save_env")
+                    if st.button("💾 Save Key & Run Analysis", key="rep_save_btn", use_container_width=True):
+                        if rep_key.strip():
+                            st.session_state.nebius_api_key = rep_key.strip()
+                            if rep_save:
+                                update_env_file("NEBIUS_API_KEY", rep_key.strip())
+                            st.success("API Key saved! Re-running analysis...")
+                            st.rerun()
+                        else:
+                            st.warning("Please paste a valid key.")
             else:
                 with st.spinner("🤖 Sending request to Nebius Token Factory (`nvidia/Llama-3.1-Nemotron-70B-Instruct`)..."):
                     try:
-                        result = analyze_civic_case(case_input)
+                        result = analyze_civic_case(case_input, api_key=get_effective_key())
                         ai_analysis = result["analysis"]
                         model_used = result["model_used"]
 
@@ -767,50 +823,72 @@ elif current_tab == "Community Insights":
 # -------------------------------------------------------------
 elif current_tab == "Settings & API Status":
     st.subheader("⚙️ Nebius Token Factory & NVIDIA Integration Settings")
-    st.caption("Verify API credentials, live endpoint connectivity, and model availability.")
+    st.caption("Configure your API credentials, live endpoint connectivity, and model availability.")
 
-    st.markdown("##### Current Runtime Configuration")
-    st.markdown(f"- **Endpoint Base URL:** `{NEBIUS_BASE_URL}`")
-    st.markdown(f"- **Configured Model:** `{NEBIUS_MODEL}`")
-    masked_key = f"{NEBIUS_API_KEY[:4]}...{NEBIUS_API_KEY[-4:]}" if len(NEBIUS_API_KEY) > 8 else ("Configured" if NEBIUS_API_KEY else "Not Configured")
-    st.markdown(f"- **API Key Status:** `{masked_key}`")
+    active_k = get_effective_key()
+    ready = is_key_ready()
 
-    st.markdown("---")
-    st.markdown("##### 🔌 Test Live Nebius Token Factory Connectivity")
-    st.caption("Perform a genuine call to `/v1/models` on Nebius Token Factory to verify credentials.")
+    st.markdown("##### 🔑 API Key Configuration")
+    if ready:
+        masked = f"{active_k[:4]}...{active_k[-4:]}" if len(active_k) > 8 else "Configured"
+        st.success(f"🟢 **API Key Active:** `{masked}`")
+    else:
+        st.warning("🟡 **API Key Not Configured:** Enter your Nebius Token Factory API key below.")
 
-    test_key_input = st.text_input(
-        "Override Nebius API Key for this session (optional)",
-        type="password",
-        placeholder="Paste your Nebius Token Factory API key here if not set in .env",
-    )
+    with st.container():
+        new_key_input = st.text_input(
+            "Nebius Token Factory API Key",
+            type="password",
+            placeholder="nbf-... or your API key from tokenfactory.nebius.com",
+            help="Your key is kept safe and never shared or logged.",
+            key="settings_key_input",
+        )
 
-    effective_key = test_key_input.strip() if test_key_input.strip() else NEBIUS_API_KEY
+        save_to_file = st.checkbox("Save permanently to local .env file", value=True, key="settings_save_env")
 
-    if st.button("⚡ Test Nebius API Connection Now", use_container_width=True):
-        with st.spinner("Connecting to Nebius Token Factory API..."):
-            res = verify_nebius_connection(api_key=effective_key)
-            st.session_state.api_test_result = res
+        btn_c1, btn_c2 = st.columns([1, 1])
+        with btn_c1:
+            if st.button("💾 Save & Apply Key", key="save_key_btn", use_container_width=True):
+                if new_key_input.strip():
+                    st.session_state.nebius_api_key = new_key_input.strip()
+                    if save_to_file:
+                        update_env_file("NEBIUS_API_KEY", new_key_input.strip())
+                    st.success("API Key successfully applied and saved!")
+                    st.rerun()
+                else:
+                    st.warning("Please enter an API key.")
+
+        with btn_c2:
+            test_target_key = new_key_input.strip() if new_key_input.strip() else active_k
+            if st.button("⚡ Test Live Connection Now", key="test_conn_btn", use_container_width=True):
+                with st.spinner("Connecting to Nebius Token Factory API..."):
+                    res = verify_nebius_connection(api_key=test_target_key)
+                    st.session_state.api_test_result = res
 
     if st.session_state.api_test_result:
         res = st.session_state.api_test_result
         if res["success"]:
             st.success(f"✅ {res['message']}")
-            st.markdown(f"- **Configured Model Present:** {'✅ Yes' if res.get('model_present') else '⚠️ Not found in account model list, check model ID'}")
-            with st.expander("View Available Models on Nebius"):
+            st.markdown(f"- **Configured Model (`{NEBIUS_MODEL}`):** {'✅ Available in account' if res.get('model_present') else '⚠️ Not listed in account models'}")
+            with st.expander("📋 View All Available Models on Nebius"):
                 for m in res.get("available_models", []):
                     st.markdown(f"- `{m}`")
         else:
             st.error(f"❌ {res['message']}")
             st.markdown(
                 """
-                **How to fix:**
-                1. Sign up / log into [Nebius Token Factory](https://tokenfactory.nebius.com/).
-                2. Generate an API Key under API Keys.
-                3. Add the key to your `.env` file as `NEBIUS_API_KEY=your_key` or paste it above.
-                4. Ensure your account has access to NVIDIA Nemotron models.
+                **How to obtain an API key:**
+                1. Sign up or log into [Nebius Token Factory](https://tokenfactory.nebius.com/).
+                2. Navigate to **API Keys** and generate a new key.
+                3. Paste the key above and click **Save & Apply Key**.
                 """
             )
+
+    st.markdown("---")
+    st.markdown("##### 📡 Runtime Environment")
+    st.markdown(f"- **Endpoint Base URL:** `{NEBIUS_BASE_URL}`")
+    st.markdown(f"- **Default Model:** `{NEBIUS_MODEL}`")
+    st.markdown(f"- **Database Storage:** `{DATABASE_PATH}`")
 
     st.markdown("---")
     st.markdown("##### 🔒 Privacy & Local Storage Audit")
