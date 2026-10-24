@@ -9,17 +9,29 @@ BASE_DIR = Path(__file__).resolve().parent
 # Load .env file
 load_dotenv(BASE_DIR / ".env")
 
+def get_secret(key: str, default: str = "") -> str:
+    """Retrieves secret from environment or Streamlit secrets dictionary."""
+    val = os.getenv(key, "").strip()
+    if not val:
+        try:
+            import streamlit as st
+            if hasattr(st, "secrets") and key in st.secrets:
+                val = str(st.secrets[key]).strip()
+        except Exception:
+            pass
+    return val if val else default
+
 # Nebius Token Factory Configuration
-NEBIUS_API_KEY = os.getenv("NEBIUS_API_KEY", "").strip()
-NEBIUS_BASE_URL = os.getenv(
+NEBIUS_API_KEY = get_secret("NEBIUS_API_KEY")
+NEBIUS_BASE_URL = get_secret(
     "NEBIUS_BASE_URL", "https://api.tokenfactory.us-central1.nebius.com/v1/"
-).strip()
-NEBIUS_MODEL = os.getenv(
+)
+NEBIUS_MODEL = get_secret(
     "NEBIUS_MODEL", "nvidia/Llama-3.1-Nemotron-70B-Instruct"
-).strip()
+)
 
 # Database Path
-DATABASE_PATH = os.getenv("DATABASE_PATH", str(BASE_DIR / "civicpulse.db")).strip()
+DATABASE_PATH = get_secret("DATABASE_PATH", str(BASE_DIR / "civicpulse.db"))
 
 # Supported Issue Categories
 ISSUE_CATEGORIES = [
@@ -41,7 +53,7 @@ CASE_STATUSES = ["Open", "In Progress", "Resolved", "Closed"]
 
 def is_nebius_configured(key: Optional[str] = None) -> bool:
     """Returns True if a non-placeholder Nebius API key is set."""
-    check_key = key if key is not None else os.getenv("NEBIUS_API_KEY", NEBIUS_API_KEY)
+    check_key = key if key is not None else get_secret("NEBIUS_API_KEY", NEBIUS_API_KEY)
     placeholder_keys = [
         "",
         "your_nebius_api_key_here",
