@@ -130,4 +130,7 @@ Analyze this situation thoroughly and output the complete JSON object according 
     except Exception as e:
         if isinstance(e, (NebiusMissingCredentialsError, NebiusClientError)):
             raise e
-        raise NebiusClientError(f"Inference request to Nebius Token Factory failed: {str(e)}")
+        err_str = str(e)
+        if api_key and len(api_key) > 4:
+            err_str = err_str.replace(api_key, "[REDACTED_API_KEY]")
+        raise NebiusClientError(f"Inference request to Nebius Token Factory failed: {err_str}")

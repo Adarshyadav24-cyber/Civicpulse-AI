@@ -37,7 +37,7 @@ ISSUE_CATEGORIES = [
 URGENCY_LEVELS = ["Low", "Medium", "High", "Critical"]
 
 # Supported Case Statuses
-CASE_STATUSES = ["Open", "In Progress", "Resolved"]
+CASE_STATUSES = ["Open", "In Progress", "Resolved", "Closed"]
 
 def is_nebius_configured(key: Optional[str] = None) -> bool:
     """Returns True if a non-placeholder Nebius API key is set."""

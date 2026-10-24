@@ -181,3 +181,87 @@ def test_markdown_export(test_db, sample_analysis):
     assert "Official Complaint Draft" in md
     assert sample_analysis.responsible_authority_type in md
     assert "Evidence Checklist" in md
+
+
+def test_closed_status_and_activity_logging(test_db, sample_analysis):
+    case = create_case(
+        title="Pothole repair lifecycle",
+        description="Pothole that goes from open to in progress, resolved, then closed.",
+        location="7th Main Road",
+        category="Roads & Footpaths",
+        ai_analysis=sample_analysis,
+        model_used="nvidia/Llama-3.1-Nemotron-70B-Instruct",
+        db_path=test_db,
+    )
+
+    # Transition to In Progress with activity note
+    update_case_status(case.id, "In Progress", author="Municipal Staff", activity_note="Team deployed", db_path=test_db)
+    # Transition to Resolved
+    update_case_status(case.id, "Resolved", author="Field Inspector", activity_note="Asphalt laid", db_path=test_db)
+    # Transition to Closed
+    update_case_status(case.id, "Closed", author="Admin", activity_note="Verified with citizen", db_path=test_db)
+
+    updated = get_case_by_id(case.id, db_path=test_db)
+    assert updated.status == "Closed"
+    assert len(updated.notes) == 3
+    assert "Status changed from 'Open' to 'In Progress'" in updated.notes[0].content
+    assert "Status changed from 'Resolved' to 'Closed'" in updated.notes[2].content
+
+
+def test_high_priority_statistics(test_db, sample_analysis):
+    create_case(
+        title="High urgency hazard",
+        description="Live electrical wire spark causing fire risk.",
+        location="Sector 4",
+        category="Streetlights & Electricity",
+        ai_analysis=sample_analysis,  # urgency is "High"
+        model_used="nvidia/Llama-3.1-Nemotron-70B-Instruct",
+        db_path=test_db,
+    )
+    stats = get_case_statistics(db_path=test_db)
+    assert stats["high_priority"] >= 1
+    assert "closed" in stats
+
+
+def test_get_community_insights(test_db, sample_analysis):
+    from database.repository import get_community_insights
+    # Empty DB insights check
+    empty_insights = get_community_insights(db_path=test_db + "_empty")
+    assert empty_insights["total_cases"] == 0
+
+    create_case(
+        title="Water pipeline rupture",
+        description="Drinking water pipe burst flooding road and walkway.",
+        location="Indiranagar 100ft Road",
+        category="Water Supply",
+        ai_analysis=sample_analysis,
+        model_used="nvidia/Llama-3.1-Nemotron-70B-Instruct",
+        db_path=test_db,
+    )
+
+    insights = get_community_insights(db_path=test_db)
+    assert insights["total_cases"] >= 1
+    assert len(insights["category_distribution"]) >= 1
+    assert len(insights["hotspot_areas"]) >= 1
+
+
+def test_duplicate_case_detection(test_db, sample_analysis):
+    from database.repository import check_duplicate_case
+    title = "Clogged drain flooding gate"
+    loc = "North Campus Gate 2"
+
+    assert check_duplicate_case(title, loc, db_path=test_db) is None
+
+    create_case(
+        title=title,
+        description="Drain has been completely blocked for two days.",
+        location=loc,
+        category="Drainage & Flooding",
+        ai_analysis=sample_analysis,
+        model_used="nvidia/Llama-3.1-Nemotron-70B-Instruct",
+        db_path=test_db,
+    )
+
+    dup = check_duplicate_case(title, loc, db_path=test_db)
+    assert dup is not None
+    assert dup.title == title

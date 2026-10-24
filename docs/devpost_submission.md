@@ -36,36 +36,28 @@ CivicPulse AI converts raw, unstructured community reports into comprehensive, p
 1. **Intelligent Triage & Urgency Assessment:** Analyzes reports and assigns an advisory urgency level (`Low`, `Medium`, `High`, `Critical`) supported by factual risk reasoning.
 2. **Epistemic Fact vs. Assumption Separation:** Clearly delineates user-provided observations from inferred consequences, ensuring credibility.
 3. **Jurisdictional Mapping:** Identifies the precise authority type (e.g. Municipal Road Maintenance, Public Health, Electricity Board) without inventing fictional personnel.
-4. **Instant Formal Complaint Drafting:** Generates an authoritative, respectful administrative letter ready to copy and paste directly into government portals.
-5. **Tangible Checklists:** Outlines evidence collection steps (measurements, photo angles, geo-tags) and an actionable 7-day follow-up protocol.
-6. **Local Case Lifecycle Management:** Saves all cases into SQLite, enabling tracking (`Open`, `In Progress`, `Resolved`), field notes, and one-click Markdown export.
+4. **Human Review & Confirmation:** Provides citizens with an interactive preview to accept, adjust, or override AI suggestions before creating the official record.
+5. **Instant Formal Complaint Drafting:** Generates an authoritative, respectful administrative letter ready to copy and paste directly into government portals.
+6. **Tangible Checklists:** Outlines evidence collection steps (measurements, photo angles, geo-tags) and an actionable follow-up protocol.
+7. **Local Case Lifecycle Management:** Saves all cases into SQLite, enabling tracking (`Open`, `In Progress`, `Resolved`, `Closed`), chronological activity audit logging, field notes, and one-click Markdown export.
+8. **Community Insights:** Derives aggregate statistics, recurring problem themes, and infrastructure hotspot clustering directly from authentic database records without simulated data.
 
 ### 🛠️ How We Built It
 - **AI Backbone:** We integrated **Nebius Token Factory** (`https://api.tokenfactory.us-central1.nebius.com/v1/`) using the official OpenAI-compatible client pattern to access **NVIDIA Nemotron** (`nvidia/Llama-3.1-Nemotron-70B-Instruct`).
 - **Prompt Architecture:** A structured system prompt guides Nemotron to act as a Senior Civic Infrastructure & Public Policy Analyst, enforcing strict JSON output conforming to a Pydantic schema.
 - **Frontend & UX:** Built with Streamlit, enriched with a custom civic-tech design system (dark navy typography, teal and lime accents, responsive cards, and accessible status badges).
-- **Persistence & Privacy:** SQLite database with indexing for search and category filtering. Uploaded evidence photos and case data stay securely stored locally.
+- **Persistence & Privacy:** Local SQLite database (`civicpulse.db`) with indexing for search, category filtering, and status audit tracking. Uploaded evidence photos and case data stay securely stored locally.
 
 ### 🧗 Challenges We Overcame
 1. **Model Output Predictability:** Ensuring frontier 70B models return strictly structured JSON without conversational filler or Markdown framing. We addressed this through robust regex boundary sanitization and Pydantic validation.
-2. **Responsible AI Guardrails:** Preventing the model from inventing fictional civil servant names or misleading citizens into thinking an automated triage is an official government declaration. We enforced strict advisory disclosures and authority-type mappings.
-3. **Responsive Civic-Tech Aesthetic:** Overcoming default UI styling to provide a polished SaaS interface with clear visual hierarchy, dynamic metric cards, and 1-click demo scenarios.
+2. **Responsible AI Guardrails & Human-in-the-Loop:** Preventing the model from inventing fictional civil servant names or misleading citizens into thinking an automated triage is an official government declaration. We enforced strict advisory disclosures, emergency helpline notices, and an explicit human confirmation step before case registration.
+3. **Transparent Connection Verification:** Ensuring the UI displays honest connection telemetry (never falsely claiming "Connected" unless a verified backend health check succeeds) and providing offline direct logging if the AI service is unavailable.
 
 ### 🏆 Accomplishments That We're Proud Of
 - A truly useful, full-stack application that solves real-world citizen headaches rather than functioning as a toy chatbot.
 - Real-time, high-speed inference powered by **NVIDIA Nemotron** on **Nebius Token Factory**.
-- Zero fabricated data: every statistic on the dashboard is derived from verifiable SQLite storage.
-- 100% automated test coverage across schemas, database CRUD, and AI error handling.
-
-### 📖 What We Learned
-- How to harness NVIDIA Nemotron’s exceptional reasoning for administrative document generation and legal triage.
-- The simplicity and speed of Nebius Token Factory’s OpenAI-compatible endpoints.
-- Best practices for local-first civic application architecture.
-
-### 🔮 What's Next for CivicPulse AI
-- Multimodal damage assessment using NVIDIA vision-language models to measure pothole dimensions directly from photos.
-- Direct integration with open government API grievance systems and RTI (Right to Information) portals.
-- Localized language translation support for regional municipal languages.
+- Zero fabricated data: every statistic on the dashboard and community insights page is derived from verifiable SQLite storage.
+- 100% automated test coverage across schemas, database CRUD, activity history logging, and AI error handling.
 
 ---
 
@@ -74,22 +66,30 @@ CivicPulse AI converts raw, unstructured community reports into comprehensive, p
 **Total Duration:** 2 minutes 45 seconds  
 **Visuals:** Screen recording with voiceover (no background music)
 
-### [0:00 - 0:30] Hook & Problem
-- **Voiceover:** *"Every day, thousands of students and residents walk past dangerous hazards like this 3-foot pothole outside a college gate. But filing a municipal complaint is intimidating. Citizens don't know who is responsible, how to write a formal letter, or how to follow up. Meet CivicPulse AI — an intelligent civic action platform powered by NVIDIA Nemotron on Nebius Token Factory."*
-- **Action:** Show the CivicPulse AI Dashboard with metric cards and category breakdown.
+### [0:00 - 0:25] Step 1: Open CivicPulse AI & Homepage Overview
+- **Voiceover:** *"Welcome to CivicPulse AI — AI-powered community issue reporting and accountable case management for the Nebius × NVIDIA Global AI Hackathon 2026. On our dashboard, citizens and neighborhood leads see real-time metrics: Total Cases, Open Cases, High-Priority issues, and Resolved cases, alongside live AI provider status."*
+- **Action:** Show the Homepage. Point out the summary cards and the prominent 'Report an Issue Now' button.
 
-### [0:30 - 1:15] Real Report Submission & Nebius/Nemotron Inference
-- **Voiceover:** *"Let's report an incident. We'll use our fast-fill demo scenario: a severe pothole causing student motorcycle accidents. Notice our location, category, and detailed description. Now, let's trigger a real inference request to Nebius Token Factory."*
-- **Action:** Click '🚧 Campus Gate Pothole'. Point to form fields. Click '⚡ Run Real AI Analysis with NVIDIA Nemotron'. Show the real-time spinner.
+### [0:25 - 0:55] Step 2: Submit a Realistic Community Infrastructure Report
+- **Voiceover:** *"Let's report an incident. We'll use a realistic 1-click scenario: a severe 3-foot pothole near a college campus entrance causing motorbike slips. Notice our location, category, date, and detailed description. Now, let's trigger real-time inference with NVIDIA Nemotron on Nebius Token Factory."*
+- **Action:** Click 'Report an Issue'. Click '🚧 Campus Gate Pothole'. Click '⚡ Analyze Issue with NVIDIA Nemotron'. Show the real-time spinner.
 
-### [1:15 - 2:00] Generated Case Plan & Actionable Triage
-- **Voiceover:** *"In seconds, NVIDIA Nemotron analyzes the hazard. Notice how it classifies the urgency as High with factual reasoning. Crucially, it separates what the citizen stated from inferred risk assumptions. Here is the formal complaint draft addressed to the Municipal Road Maintenance division, ready to copy and paste. And below, a concrete evidence checklist and a 7-day follow-up timeline."*
-- **Action:** Scroll through the analysis tabs: Facts vs Assumptions, Complaint Letter, and Evidence Checklist.
+### [0:55 - 1:30] Step 3: Inspect Nemotron Analysis & Human Confirmation
+- **Voiceover:** *"In seconds, NVIDIA Nemotron analyzes the hazard. It recommends High Urgency with factual reasoning and maps the target jurisdiction to the Municipal Road Maintenance division. Crucially, it separates citizen facts from inferred risks, flags missing details, and writes an authoritative formal complaint letter ready for the grievance portal. Before saving, our human confirmation step allows the citizen to review and adjust the final classification."*
+- **Action:** Scroll through the analysis tabs. Highlight Fact vs Assumption separation and Complaint Letter. Click '✅ Confirm & Create Official Case Record'. Show the success balloon and assigned Case Number.
 
-### [2:00 - 2:30] Case Management & Technical Architecture
-- **Voiceover:** *"Under Case Management, every report is tracked in a local SQLite database. We can filter by urgency, update the status from Open to In Progress, append field notes from local officials, and export the entire dossier as a clean Markdown report. In the Settings tab, we can verify our live connectivity to the Nebius Token Factory endpoint and inspect available models."*
-- **Action:** Switch to 'Case Management'. Update status to 'In Progress'. Add a quick note. Switch to 'Settings & API Status' and show verified Nebius connection.
+### [1:30 - 2:05] Steps 4-6: Case Management, Status Transitions & Activity History
+- **Voiceover:** *"Under Case Management, every case is stored in our local SQLite database. We can search by keyword or filter by category, urgency, and status. Let's select our new case. When a municipal crew responds, we update the status from Open to In Progress with an inspection note. Notice how every status update is permanently recorded in our chronological activity history."*
+- **Action:** Switch to 'Case Management'. Select the newly created case. Change status to 'In Progress', type note 'Repair team dispatched', and click 'Save Status Update'. Point to the activity history audit box. Show the '⬇️ Export Case Dossier (.md)' download button.
 
-### [2:30 - 2:45] Conclusion & Hackathon Track
-- **Voiceover:** *"CivicPulse AI turns citizen frustration into structured, accountable civic action using state-of-the-art NVIDIA Nemotron models hosted on Nebius high-performance infrastructure. Thank you!"*
-- **Action:** Return to Dashboard with updated resolved/in-progress counts.
+### [2:05 - 2:25] Step 7: Return to Dashboard (Updated Metrics)
+- **Voiceover:** *"Returning to the Dashboard, our counts have updated immediately from SQLite: our Open and High-Priority numbers reflect the latest state."*
+- **Action:** Switch to 'Dashboard'. Show the updated metric cards.
+
+### [2:25 - 2:40] Step 8: Community Insights from Real Records
+- **Voiceover:** *"In Community Insights, we aggregate authentic trends across all stored cases: category distributions, lifecycle resolution charts, recurring problem themes, and infrastructure hotspots."*
+- **Action:** Switch to 'Community Insights'. Show the category chart, status donut chart, themes, and location hotspots.
+
+### [2:40 - 2:45] Step 9: Settings & Real Connection Verification
+- **Voiceover:** *"Finally, in Settings, we can verify our live connection to Nebius Token Factory and inspect available models with zero secret leakage. Thank you!"*
+- **Action:** Switch to 'Settings & API Status'. Click '⚡ Test AI Connection Now' and show the verified status message.

@@ -1,6 +1,7 @@
 # CivicPulse AI — Grassroots Civic Action Platform
 > **Nebius × NVIDIA Global AI Hackathon 2026** | **Track:** Best Apps & Agents
 
+**AI-powered community issue reporting and accountable case management.**  
 Turning grassroots community grievances and infrastructure defects into structured, prioritized case plans and formal complaint packages powered by **NVIDIA Nemotron** on **Nebius Token Factory**.
 
 ---
@@ -17,21 +18,25 @@ When citizens encounter local hazards — such as severe road craters outside sc
 CivicPulse AI acts as a dedicated civic case analyst for residents, students, campus administrators, and neighborhood associations:
 1. **Factual Triage:** Analyzes raw incident reports, separates stated facts from assumed risks, and recommends an urgency triage level (`Low`, `Medium`, `High`, `Critical`).
 2. **Jurisdiction Identification:** Maps the incident to the appropriate municipal or state authority type without inventing fictional officials.
-3. **Formal Complaint Drafting:** Generates an authoritative, professionally phrased complaint letter ready to paste into municipal grievance portals.
-4. **Actionable Checklists:** Produces evidence checklists (measurements, timestamps, geo-coordinates) and a 7-day escalation protocol.
-5. **Persistent Lifecycle Management:** Stores cases in a local SQLite database, allowing users to track status (`Open`, `In Progress`, `Resolved`), append chronological progress notes, and export complete Markdown case dossiers.
+3. **Human Review & Confirmation:** Provides citizens with an interactive preview to accept, adjust, or override AI suggestions before creating the official record.
+4. **Formal Complaint Drafting:** Generates an authoritative, professionally phrased complaint letter ready to paste into municipal grievance portals.
+5. **Actionable Checklists:** Produces evidence checklists (measurements, timestamps, geo-coordinates) and a follow-up protocol.
+6. **Persistent Lifecycle Management:** Stores cases in a local SQLite database, allowing users to track status (`Open`, `In Progress`, `Resolved`, `Closed`), append chronological activity audit logs, and export complete Markdown case dossiers.
+7. **Offline Fallback Resilience:** Allows citizens to record grievances directly if the AI service or network is unavailable, ensuring reports are never lost.
 
 ---
 
 ## 2. Key Features
 
-- **📊 Civic Health Dashboard:** Real-time visibility into open vs. resolved cases, urgency distributions, and category breakdowns with explicit labeling of sample vs. user-generated data.
+- **📊 Civic Health Dashboard:** Real-time visibility into Total Cases, Open Cases, High-Priority issues, and Resolved cases with Altair category and urgency distributions.
 - **🚀 1-Click Fast-Fill Scenarios:** Preloaded realistic scenarios (Pothole at College Gate, Overflowing Market Dumpster, Unlit Pedestrian Walkway) to demonstrate end-to-end inference in seconds.
-- **⚡ Genuine Nebius × NVIDIA Nemotron Integration:** Real-time inference through Nebius Token Factory (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) with strict Pydantic JSON schema validation.
-- **📁 Complete Case Management:** Filter by category, urgency, or status; search by keyword; append field notes; and delete cases with confirmation protection.
+- **⚡ Genuine Nebius × NVIDIA Nemotron Integration:** Real-time inference through Nebius Token Factory (`nvidia/Llama-3.1-Nemotron-70B-Instruct`) with strict Pydantic JSON schema validation and verifiable live backend health checks.
+- **👤 Human-in-the-Loop Confirmation:** Interactive review step allowing citizens to confirm or adjust AI recommendations before creating the official case record.
+- **📁 Complete Case Management:** Filter by category, urgency, or status (`Open`, `In Progress`, `Resolved`, `Closed`); search by keyword or Case ID; record chronological activity audit trails; and delete cases with confirmation protection.
+- **📈 Community Insights:** Derive real aggregate trends, keyword problem themes, and infrastructure hotspot clustering directly from authentic SQLite records without simulated data.
 - **📥 One-Click Export:** Export full case dossiers as clean Markdown files (`.md`) formatted for citizen advocacy.
-- **📸 Local Evidence Preservation:** Optional photo attachment securely stored in local project storage.
-- **🛡️ Privacy & Advisory Boundaries:** Clear disclosure that AI urgency is an advisory recommendation and that no sensitive identity documents or passwords are collected.
+- **📸 Local Evidence Preservation:** Optional photo attachment securely stored in local project storage (`uploads/`).
+- **🛡️ Privacy & Advisory Boundaries:** Clear disclosure that AI urgency is an advisory recommendation, emergency helpline guidance for immediate life safety risks, and zero secret leakage.
 
 ---
 

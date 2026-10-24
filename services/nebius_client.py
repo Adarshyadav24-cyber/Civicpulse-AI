@@ -79,6 +79,8 @@ def verify_nebius_connection(
         }
     except Exception as e:
         error_msg = str(e)
+        if key and len(key) > 4:
+            error_msg = error_msg.replace(key, "[REDACTED_API_KEY]")
         return {
             "success": False,
             "connected": False,

@@ -82,6 +82,8 @@ def create_case(
     model_used: str,
     photo_path: Optional[str] = None,
     observed_date: Optional[str] = None,
+    status: str = "Open",
+    add_initial_note: bool = False,
     is_demo: bool = False,
     db_path: str = DATABASE_PATH,
 ) -> CaseRecord:
@@ -99,7 +101,7 @@ def create_case(
             case_number, title, description, location, category,
             photo_path, observed_date, status, urgency,
             ai_analysis_json, model_used, is_demo, created_at, updated_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, 'Open', ?, ?, ?, ?, ?, ?)
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
         (
             case_number,
@@ -109,6 +111,7 @@ def create_case(
             category,
             photo_path,
             observed_date,
+            status,
             urgency,
             ai_analysis.model_dump_json(),
             model_used,
@@ -119,6 +122,21 @@ def create_case(
     )
 
     case_id = cursor.lastrowid
+    notes = []
+
+    # Optional initial creation event in activity history
+    if add_initial_note:
+        init_note = CaseNote(
+            timestamp=now,
+            author="System Audit",
+            content=f"Case initialized with status '{status}' and urgency '{urgency}'. Ready for municipal tracking.",
+        )
+        cursor.execute(
+            "INSERT INTO case_notes (case_id, timestamp, author, content) VALUES (?, ?, ?, ?)",
+            (case_id, init_note.timestamp, init_note.author, init_note.content),
+        )
+        notes.append(init_note)
+
     conn.commit()
     conn.close()
 
@@ -131,10 +149,10 @@ def create_case(
         category=category,
         photo_path=photo_path,
         observed_date=observed_date,
-        status="Open",
+        status=status,  # type: ignore
         urgency=urgency,
         ai_analysis=ai_analysis,
-        notes=[],
+        notes=notes,
         created_at=now,
         updated_at=now,
         model_used=model_used,
@@ -248,17 +266,37 @@ def get_all_cases(
 
 
 def update_case_status(
-    case_id: int, new_status: str, db_path: str = DATABASE_PATH
+    case_id: int,
+    new_status: str,
+    author: str = "System / Case Officer",
+    activity_note: Optional[str] = None,
+    db_path: str = DATABASE_PATH,
 ) -> bool:
-    """Updates the workflow status of a case."""
+    """Updates the workflow status of a case and records the transition in activity history."""
     now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
+
+    # Query current status to formulate transition log
+    cursor.execute("SELECT status FROM cases WHERE id = ?", (case_id,))
+    row = cursor.fetchone()
+    old_status = row["status"] if row else "Unknown"
+
     cursor.execute(
         "UPDATE cases SET status = ?, updated_at = ? WHERE id = ?",
         (new_status, now, case_id),
     )
     success = cursor.rowcount > 0
+
+    if success:
+        log_content = f"Status changed from '{old_status}' to '{new_status}'."
+        if activity_note and activity_note.strip():
+            log_content += f" Note: {activity_note.strip()}"
+        cursor.execute(
+            "INSERT INTO case_notes (case_id, timestamp, author, content) VALUES (?, ?, ?, ?)",
+            (case_id, now, author.strip(), log_content),
+        )
+
     conn.commit()
     conn.close()
     return success
@@ -297,8 +335,25 @@ def delete_case(case_id: int, db_path: str = DATABASE_PATH) -> bool:
     return success
 
 
+def check_duplicate_case(title: str, location: str, db_path: str = DATABASE_PATH) -> Optional[CaseRecord]:
+    """Checks if an identical or near-duplicate case exists in 'Open' or 'In Progress' status."""
+    conn = get_db_connection(db_path)
+    cursor = conn.cursor()
+    cursor.execute(
+        "SELECT * FROM cases WHERE LOWER(title) = LOWER(?) AND LOWER(location) = LOWER(?) AND status IN ('Open', 'In Progress')",
+        (title.strip(), location.strip()),
+    )
+    row = cursor.fetchone()
+    conn.close()
+    if row:
+        notes = get_case_notes(row["id"], db_path)
+        return _row_to_case_record(row, notes)
+    return None
+
+
 def get_case_statistics(db_path: str = DATABASE_PATH) -> Dict[str, Any]:
     """Computes aggregate analytics for dashboard presentation."""
+    init_db(db_path)
     conn = get_db_connection(db_path)
     cursor = conn.cursor()
 
@@ -313,6 +368,12 @@ def get_case_statistics(db_path: str = DATABASE_PATH) -> Dict[str, Any]:
 
     cursor.execute("SELECT COUNT(*) FROM cases WHERE status = 'Resolved'")
     resolved_cases = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM cases WHERE status = 'Closed'")
+    closed_cases = cursor.fetchone()[0]
+
+    cursor.execute("SELECT COUNT(*) FROM cases WHERE urgency IN ('High', 'Critical')")
+    high_priority_cases = cursor.fetchone()[0]
 
     cursor.execute("SELECT COUNT(*) FROM cases WHERE is_demo = 1")
     demo_cases_count = cursor.fetchone()[0]
@@ -330,11 +391,82 @@ def get_case_statistics(db_path: str = DATABASE_PATH) -> Dict[str, Any]:
         "open": open_cases,
         "in_progress": in_progress_cases,
         "resolved": resolved_cases,
+        "closed": closed_cases,
+        "high_priority": high_priority_cases,
         "category_counts": category_counts,
         "urgency_counts": urgency_counts,
         "demo_count": demo_cases_count,
         "user_count": total_cases - demo_cases_count,
         "is_all_demo": (total_cases > 0 and total_cases == demo_cases_count),
+    }
+
+
+def get_community_insights(db_path: str = DATABASE_PATH) -> Dict[str, Any]:
+    """Generates analytical insights derived strictly from stored SQLite records."""
+    init_db(db_path)
+    conn = get_db_connection(db_path)
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) FROM cases")
+    total_cases = cursor.fetchone()[0]
+
+    if total_cases == 0:
+        conn.close()
+        return {
+            "total_cases": 0,
+            "category_distribution": [],
+            "urgency_distribution": [],
+            "status_distribution": [],
+            "common_themes": [],
+            "hotspot_areas": [],
+        }
+
+    # Category distribution
+    cursor.execute("SELECT category, COUNT(*) as count FROM cases GROUP BY category ORDER BY count DESC")
+    cat_dist = [{"category": r["category"], "count": r["count"]} for r in cursor.fetchall()]
+
+    # Urgency distribution
+    cursor.execute("SELECT urgency, COUNT(*) as count FROM cases GROUP BY urgency ORDER BY count DESC")
+    urg_dist = [{"urgency": r["urgency"], "count": r["count"]} for r in cursor.fetchall()]
+
+    # Status distribution
+    cursor.execute("SELECT status, COUNT(*) as count FROM cases GROUP BY status ORDER BY count DESC")
+    st_dist = [{"status": r["status"], "count": r["count"]} for r in cursor.fetchall()]
+
+    # Repeated complaint areas (locations with count)
+    cursor.execute("SELECT location, COUNT(*) as count FROM cases GROUP BY location ORDER BY count DESC LIMIT 8")
+    hotspots = [{"location": r["location"], "count": r["count"]} for r in cursor.fetchall()]
+
+    # Common issue themes analysis
+    cursor.execute("SELECT title, description FROM cases")
+    all_texts = " ".join([f"{r['title']} {r['description']}".lower() for r in cursor.fetchall()])
+
+    theme_keywords = [
+        ("Potholes & Road Cratering", ["pothole", "crater", "asphalt", "road", "pavement"]),
+        ("Waste & Dumping", ["garbage", "dumpster", "waste", "trash", "debris", "litter"]),
+        ("Darkness & Lighting", ["streetlight", "lighting", "unlit", "dark", "lamp"]),
+        ("Water Supply & Leakage", ["water", "leak", "pipe", "pipeline", "supply", "burst"]),
+        ("Drainage & Flooding", ["drain", "drainage", "flooding", "waterlogging", "manhole", "sewer"]),
+        ("Pedestrian & Student Safety", ["pedestrian", "student", "footpath", "sidewalk", "crossing", "safety", "accident"]),
+    ]
+
+    themes = []
+    for theme_label, words in theme_keywords:
+        match_count = sum(all_texts.count(w) for w in words)
+        if match_count > 0:
+            themes.append({"theme": theme_label, "mentions": match_count})
+
+    themes.sort(key=lambda x: x["mentions"], reverse=True)
+
+    conn.close()
+
+    return {
+        "total_cases": total_cases,
+        "category_distribution": cat_dist,
+        "urgency_distribution": urg_dist,
+        "status_distribution": st_dist,
+        "common_themes": themes,
+        "hotspot_areas": hotspots,
     }
 
 

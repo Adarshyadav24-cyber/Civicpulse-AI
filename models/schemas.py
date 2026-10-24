@@ -35,6 +35,10 @@ class CaseInput(BaseModel):
         None,
         description="Date when the issue was observed (YYYY-MM-DD)",
     )
+    user_urgency: Optional[Literal["Low", "Medium", "High", "Critical"]] = Field(
+        None,
+        description="Citizen's self-assessed initial urgency preference",
+    )
 
     @field_validator("title")
     @classmethod
@@ -137,7 +141,7 @@ class CaseRecord(BaseModel):
     category: str
     photo_path: Optional[str] = None
     observed_date: Optional[str] = None
-    status: Literal["Open", "In Progress", "Resolved"] = "Open"
+    status: Literal["Open", "In Progress", "Resolved", "Closed"] = "Open"
     urgency: Literal["Low", "Medium", "High", "Critical"] = "Medium"
     ai_analysis: AIAnalysisResult
     notes: List[CaseNote] = Field(default_factory=list)
@@ -145,3 +149,27 @@ class CaseRecord(BaseModel):
     updated_at: str
     model_used: str
     is_demo: bool = False
+
+
+def create_unavailable_analysis(category: str, urgency: str = "Medium") -> AIAnalysisResult:
+    """Fallback analysis record when AI inference is unavailable or offline."""
+    valid_urgency = urgency if urgency in ["Low", "Medium", "High", "Critical"] else "Medium"
+    return AIAnalysisResult(
+        summary="Case logged directly by citizen without real-time AI analysis.",
+        category=category,
+        urgency=valid_urgency,  # type: ignore
+        urgency_reasoning="Direct user-specified urgency. Live AI triage was unavailable at submission time.",
+        distinguished_facts=["Directly recorded by resident via community submission."],
+        assumptions_made=["Pending automated AI analysis upon next service availability."],
+        missing_information=["Awaiting municipal inspection or resident follow-up details."],
+        recommended_next_steps=[
+            "Submit report reference number to local municipal ward office.",
+            "Gather additional timestamped photos or witness statements.",
+            "Check case progress after 3-5 business days."
+        ],
+        responsible_authority_type="Municipal Grievance Cell",
+        complaint_letter="Dear Municipal Authority,\n\nPlease register this citizen complaint for priority inspection and resolution.",
+        evidence_checklist=["Timestamped photographs of the incident site", "Landmark or GPS coordinates"],
+        follow_up_checklist=["Check status after 3-5 business days", "Escalate if no inspection is scheduled"],
+        confidence_assessment="Manual submission - no AI analysis was performed for this case.",
+    )

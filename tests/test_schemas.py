@@ -88,3 +88,41 @@ def test_missing_required_ai_fields():
             responsible_authority_type="Public Works",
             confidence_assessment="Advisory.",
         )
+
+
+def test_create_unavailable_analysis():
+    from models.schemas import create_unavailable_analysis
+    fallback = create_unavailable_analysis(category="Sanitation & Waste", urgency="High")
+    assert fallback.category == "Sanitation & Waste"
+    assert fallback.urgency == "High"
+    assert "without real-time AI analysis" in fallback.summary
+    assert "Manual submission" in fallback.confidence_assessment
+
+
+def test_case_input_with_user_urgency():
+    case = CaseInput(
+        title="Open excavation on footway",
+        description="Contractors dug a 5ft deep trench and left it uncovered overnight.",
+        location="Corner of 3rd Street",
+        category="Roads & Footpaths",
+        user_urgency="High",
+    )
+    assert case.user_urgency == "High"
+
+
+def test_closed_status_valid_in_case_record():
+    from models.schemas import CaseRecord, create_unavailable_analysis
+    record = CaseRecord(
+        case_number="CP-2026-TEST01",
+        title="Repaired water leak",
+        description="Water pipe repaired by municipal engineering team.",
+        location="Sector 1",
+        category="Water Supply",
+        status="Closed",
+        urgency="Low",
+        ai_analysis=create_unavailable_analysis("Water Supply", "Low"),
+        created_at="2026-10-24 10:00:00",
+        updated_at="2026-10-24 12:00:00",
+        model_used="Manual Offline",
+    )
+    assert record.status == "Closed"
